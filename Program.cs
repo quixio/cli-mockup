@@ -147,12 +147,18 @@ class Program
         RunCommand($"{pythonCommand} -m venv {appName}/venv");
         Console.WriteLine("Virtual environment created.");
 
+
+        // Activate the virtual environment
+        var activateCommand = $"source {appName}/venv/bin/activate";
+        RunCommand(activateCommand);
+        Console.WriteLine("Virtual environment activated.");
+
         // Activate the virtual environment and install the dependencies
-        var activateCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
-            $"{appName}\\venv\\Scripts\\activate" : $"source {appName}/venv/bin/activate";
-        var installCommand = $"{pythonCommand} -m pip install -r {appName}/requirements.txt";
-        RunCommand($"{activateCommand} && {installCommand}");
-        Console.WriteLine("Virtual environment activated and dependencies installed.");
+        // var activateCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
+        //     $"{appName}\\venv\\Scripts\\activate" : $"source {appName}/venv/bin/activate";
+        // var installCommand = $"{pythonCommand} -m pip install -r {appName}/requirements.txt";
+        // RunCommand($"{activateCommand} && {installCommand}");
+        // Console.WriteLine("Virtual environment activated and dependencies installed.");
 
         var activateVenvCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
             "activate.bat" : "activate.sh";
