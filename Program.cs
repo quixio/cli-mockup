@@ -1,4 +1,5 @@
 ﻿using System;
+using Confluent.Kafka;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -63,6 +64,22 @@ class Program
         {
             Activate();
         }
+        else if (command == "topics")
+        {
+            //quix topics ingest demo-stream
+            var action = args[1];
+            if (action == "ingest")
+            {
+                var topic = args[2];
+
+                DemoData(topic);
+            }
+            else{
+                Console.WriteLine("Usage:");
+                Console.WriteLine("  ingest [topic-name] - ingest data into a topic of your choosing");
+
+            }
+        }
         else
         {
             Console.WriteLine("Unknown command. Use 'init' to initialize the project or 'create' to create a new app.");
@@ -74,6 +91,8 @@ class Program
         Console.WriteLine("Usage:");
         Console.WriteLine("  begin - Initialize the project");
         Console.WriteLine("  create <app_name> - Create a new app");
+        Console.WriteLine("  topics ingest [topic-name] - Ingest data");
+
     }
 
     static void Init()
@@ -190,6 +209,23 @@ class Program
         //var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m ";
         //Console.WriteLine($"{helpText2}pip install -r requirements.txt");
 
+    }
+
+    static void DemoData(string topic){
+        var config = new ProducerConfig { BootstrapServers = "localhost:19092" };
+
+        using (var producer = new ProducerBuilder<Null, string>(config).Build())
+        {
+            try
+            {
+                var dr = producer.ProduceAsync(topic, new Message<Null, string> { Value = "test" }).Result;
+                Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
+            }
+            catch (ProduceException<Null, string> e)
+            {
+                Console.WriteLine($"Delivery failed: {e.Error.Reason}");
+            }
+        }
     }
 
     static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true)
