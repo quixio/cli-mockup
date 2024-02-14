@@ -149,6 +149,8 @@ class Program
 
     static void CreateVenv(){
         
+        Console.WriteLine("Creating Virtual environment...");
+
         // Get the correct Python command
         var pythonCommand = GetPythonCommand();
 
@@ -162,29 +164,28 @@ class Program
     static void Activate()
     {
         //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
-        // var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
-        // var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
-        // var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-        //     "" : $"chmod +x {scriptPath}";
-        // RunCommand(chmodCommand);
-        // RunCommand($"{scriptPath}", waitForExit: false);
+        var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
+        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
+        //var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
+        //RunCommand(chmodCommand);
+        RunCommand($"{scriptPath}", waitForExit: false);
 
         //RunCommand($"{activateCommand}");
         //Console.WriteLine(activateCommand);
 
-        // var pythonCommand = GetPythonCommand();
-        // var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
-        // RunCommand($"{installCommand}");
+        //var pythonCommand = GetPythonCommand();
+        //var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
+        //RunCommand($"{installCommand}");
 
         // Console.WriteLine("Virtual environment dependencies installed.");
         var helpText = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "..\\venv\\Scripts\\activate" : "source ../venv/bin/activate";
 
         Console.WriteLine("Please copy and paste the following command into your shell to execute it:");
         Console.WriteLine(helpText);
-        Console.WriteLine("Then run:");
+        //Console.WriteLine("Then run:");
 
-        var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m ";
-        Console.WriteLine($"{helpText2}pip install -r requirements.txt");
+        //var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m ";
+        //Console.WriteLine($"{helpText2}pip install -r requirements.txt");
 
     }
 
