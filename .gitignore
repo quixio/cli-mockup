@@ -1,3 +1,9 @@
 bin/*
 
 obj/
+
+.idea/
+
+.vs/
+
+.DS_Store
