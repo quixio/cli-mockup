@@ -111,15 +111,12 @@ class Program
         Directory.CreateDirectory(".quix");
         Console.WriteLine("Directory .quix created.");
 
-        // TODO: Download the quix.yaml file
+        CreateVenv();
     }
 
 
     static void Create(string appName)
     {
-
-     
-
         // Create a directory with the name of the app
         Directory.CreateDirectory(appName);
         Console.WriteLine($"Directory {appName} created.");
@@ -149,10 +146,9 @@ class Program
        
     }
 
-    static void Activate()
-    {
-        //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
 
+    static void CreateVenv(){
+        
         // Get the correct Python command
         var pythonCommand = GetPythonCommand();
 
@@ -162,26 +158,36 @@ class Program
             RunCommand($"{pythonCommand} -m venv venv");
             Console.WriteLine("Virtual environment created.");
         }
+    }
+    static void Activate()
+    {
+        //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
 
-        var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
 
-        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
+        // var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
 
-        var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-            "" : $"chmod +x {scriptPath}";
+        // var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
 
-        RunCommand(chmodCommand);
+        // var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
+        //     "" : $"chmod +x {scriptPath}";
 
-        RunCommand($"{scriptPath}", waitForExit: false);
+        // RunCommand(chmodCommand);
+
+        // RunCommand($"{scriptPath}", waitForExit: false);
 
         //RunCommand($"{activateCommand}");
         //Console.WriteLine(activateCommand);
-        Console.WriteLine("Virtual environment activated.");
 
-        var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
-        //RunCommand($"{installCommand}");
+        // var pythonCommand = GetPythonCommand();
+        // var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
+        // RunCommand($"{installCommand}");
 
-        Console.WriteLine("Virtual environment dependencies installed.");
+        // Console.WriteLine("Virtual environment dependencies installed.");
+
+        Console.WriteLine("Please copy and paste the following command into your shell to execute it:");
+        Console.WriteLine("source ../venv/bin/activate");
+        Console.WriteLine("Then run:");
+        Console.WriteLine("python3 -m pip install -r requirements.txt");
 
     }
 
