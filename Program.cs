@@ -80,6 +80,11 @@ class Program
 
             }
         }
+        else if (command == "deploy")
+        {
+            var dockerInfo = RunCommand("run cli", output: true);
+            
+        }
         else
         {
             Console.WriteLine("Unknown command. Use 'init' to initialize the project or 'create' to create a new app.");
@@ -168,7 +173,7 @@ class Program
         Console.WriteLine($"Directory {appName} created.");
 
         // Download main.py, requirements.txt, and app.yaml files from the URLs
-        var files = new[] { "main.py", "requirements.txt", "app.yaml" };
+        var files = new[] { "main.py", "requirements.txt", "app.yaml", "dockerfile" };
         var urls = new[]
         {
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/main.py",
