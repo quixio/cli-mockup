@@ -183,8 +183,8 @@ class Program
         Console.WriteLine(helpText);
         Console.WriteLine("Then run:");
 
-        var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m";
-        Console.WriteLine($"{helpText2} pip install -r requirements.txt");
+        var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m ";
+        Console.WriteLine($"{helpText2}pip install -r requirements.txt");
 
     }
 
