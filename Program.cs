@@ -59,6 +59,10 @@ class Program
             var appName = args[1];
             Create(appName);
         }
+        else if (command == "activate")
+        {
+            Activate();
+        }
         else
         {
             Console.WriteLine("Unknown command. Use 'init' to initialize the project or 'create' to create a new app.");
@@ -114,8 +118,7 @@ class Program
     static void Create(string appName)
     {
 
-        // Get the correct Python command
-        var pythonCommand = GetPythonCommand();
+     
 
         // Create a directory with the name of the app
         Directory.CreateDirectory(appName);
@@ -143,29 +146,43 @@ class Program
             }
         }
 
-        // Create a virtual environment in the new app folder
-        RunCommand($"{pythonCommand} -m venv {appName}/venv");
-        Console.WriteLine("Virtual environment created.");
+       
+    }
 
+    static void Activate()
+    {
+        //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
 
-        // Activate the virtual environment
-        var activateCommand = $"source {appName}/venv/bin/activate";
-        RunCommand(activateCommand);
+        // Get the correct Python command
+        var pythonCommand = GetPythonCommand();
+
+        if (!Directory.Exists($"venv"))
+        {
+            // Create a virtual environment in the new app folder
+            RunCommand($"{pythonCommand} -m venv venv");
+            Console.WriteLine("Virtual environment created.");
+        }
+
+        var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
+
+        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
+
+        var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
+            "" : $"chmod +x {scriptPath}";
+
+        RunCommand(chmodCommand);
+
+        RunCommand($"{scriptPath}", waitForExit: false);
+
+        //RunCommand($"{activateCommand}");
+        //Console.WriteLine(activateCommand);
         Console.WriteLine("Virtual environment activated.");
 
-        // Activate the virtual environment and install the dependencies
-        // var activateCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
-        //     $"{appName}\\venv\\Scripts\\activate" : $"source {appName}/venv/bin/activate";
-        // var installCommand = $"{pythonCommand} -m pip install -r {appName}/requirements.txt";
-        // RunCommand($"{activateCommand} && {installCommand}");
-        // Console.WriteLine("Virtual environment activated and dependencies installed.");
+        var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
+        //RunCommand($"{installCommand}");
 
+        Console.WriteLine("Virtual environment dependencies installed.");
 
-        var activateVenvCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
-            "activate.bat" : "activate.sh";
-        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, activateVenvCommand);
-
-        RunCommand($"{scriptPath} {appName}", waitForExit: false);
     }
 
     static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true)
