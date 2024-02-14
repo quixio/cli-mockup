@@ -162,17 +162,11 @@ class Program
     static void Activate()
     {
         //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
-
-
         // var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
-
         // var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
-
         // var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
         //     "" : $"chmod +x {scriptPath}";
-
         // RunCommand(chmodCommand);
-
         // RunCommand($"{scriptPath}", waitForExit: false);
 
         //RunCommand($"{activateCommand}");
@@ -183,11 +177,14 @@ class Program
         // RunCommand($"{installCommand}");
 
         // Console.WriteLine("Virtual environment dependencies installed.");
+        var helpText = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "..\\venv\\Scripts\\activate" : "source ../venv/bin/activate";
 
         Console.WriteLine("Please copy and paste the following command into your shell to execute it:");
-        Console.WriteLine("source ../venv/bin/activate");
+        Console.WriteLine(helpText);
         Console.WriteLine("Then run:");
-        Console.WriteLine("python3 -m pip install -r requirements.txt");
+
+        var helpText2 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : "python3 -m";
+        Console.WriteLine($"{helpText2} pip install -r requirements.txt");
 
     }
 
