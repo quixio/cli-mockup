@@ -102,6 +102,14 @@ class Program
 
     static void Init()
     {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+
+        }
+        else
+        {
+            RunCommand("curl -fsSL https://github.com/quixio/quix-cli/raw/main/install.sh | sudo bash -s -- -v=0.0.1-20240214.6");
+        }
 
         // Create a directory named .quix
         Directory.CreateDirectory(".quix");
