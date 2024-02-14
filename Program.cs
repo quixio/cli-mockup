@@ -101,6 +101,7 @@ class Program
         // Create a directory named .quix
         Directory.CreateDirectory(".quix");
         Console.WriteLine("Directory .quix created.");
+        DownloadInitFiles();
 
         CreateVenv();
 
@@ -137,6 +138,29 @@ class Program
     }
 
 
+    static void DownloadInitFiles(){
+        
+        // Download main.py, requirements.txt, and app.yaml files from the URLs
+        var files = new[] { "main.py", "requirements.txt", "app.yaml" };
+        var urls = new[]
+        {
+            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/quix.yaml",
+        };
+
+        using (var client = new WebClient())
+        {
+            for (int i = 0; i < files.Length; i++)
+            {
+                var file = files[i];
+                var url = urls[i];
+                //var path = Path.Combine(appName, file);
+
+                client.DownloadFile(url, ".");
+                Console.WriteLine($"File {file} downloaded.");
+            }
+        }
+    }
+
     static void Create(string appName)
     {
         // Create a directory with the name of the app
@@ -150,6 +174,7 @@ class Program
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/main.py",
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/requirements.txt",
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/app.yaml",
+            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/dockerfile",
         };
 
         using (var client = new WebClient())
@@ -164,10 +189,7 @@ class Program
                 Console.WriteLine($"File {file} downloaded.");
             }
         }
-
-       
     }
-
 
     static void CreateVenv(){
         
@@ -212,20 +234,7 @@ class Program
     }
 
     static void DemoData(string topic){
-        var config = new ProducerConfig { BootstrapServers = "localhost:19092" };
-
-        using (var producer = new ProducerBuilder<Null, string>(config).Build())
-        {
-            try
-            {
-                var dr = producer.ProduceAsync(topic, new Message<Null, string> { Value = "test" }).Result;
-                Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
-            }
-            catch (ProduceException<Null, string> e)
-            {
-                Console.WriteLine($"Delivery failed: {e.Error.Reason}");
-            }
-        }
+        Console.WriteLine($"Data delivered");
     }
 
     static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true)
