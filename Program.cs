@@ -50,7 +50,7 @@ class Program
         // Parse command-line arguments
         var command = args[0];
 
-        if (command == "init")
+        if (command == "begin")
         {
             Init();
         }
@@ -72,12 +72,19 @@ class Program
     static void PrintHelp()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  init - Initialize the project");
+        Console.WriteLine("  begin - Initialize the project");
         Console.WriteLine("  create <app_name> - Create a new app");
     }
 
     static void Init()
     {
+
+        // Create a directory named .quix
+        Directory.CreateDirectory(".quix");
+        Console.WriteLine("Directory .quix created.");
+
+        CreateVenv();
+
         // Check if Docker Desktop is running
         var dockerInfo = RunCommand("docker info", output: false);
         if (dockerInfo.ExitCode == 0)
@@ -107,11 +114,7 @@ class Program
             RunCommand("docker-compose up", redirectOutput: true, waitForExit: false);
         }
 
-        // Create a directory named .quix
-        Directory.CreateDirectory(".quix");
-        Console.WriteLine("Directory .quix created.");
-
-        CreateVenv();
+        
     }
 
 
@@ -168,7 +171,7 @@ class Program
         var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
         //var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
         //RunCommand(chmodCommand);
-        RunCommand($"{scriptPath}", waitForExit: false);
+        RunCommand($"{scriptPath}", waitForExit: true);
 
         //RunCommand($"{activateCommand}");
         //Console.WriteLine(activateCommand);
