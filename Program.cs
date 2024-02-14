@@ -160,9 +160,12 @@ class Program
         // RunCommand($"{activateCommand} && {installCommand}");
         // Console.WriteLine("Virtual environment activated and dependencies installed.");
 
+
         var activateVenvCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
             "activate.bat" : "activate.sh";
-        RunCommand($"{activateVenvCommand} {appName}", waitForExit: false);
+        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, activateVenvCommand);
+
+        RunCommand($"{scriptPath} {appName}", waitForExit: false);
     }
 
     static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true)
