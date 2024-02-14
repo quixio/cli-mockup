@@ -7,3 +7,5 @@ obj/
 .vs/
 
 .DS_Store
+
+.env
