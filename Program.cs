@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Confluent.Kafka;
 using System.Diagnostics;
 using System.IO;
@@ -210,9 +210,12 @@ class Program
         //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
         var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
         var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
-        //var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
-        //RunCommand(chmodCommand);
+        var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
+        RunCommand(chmodCommand);
         RunCommand($"{scriptPath}", waitForExit: true);
+
+        RunCommand("quix local sync env-variables", waitForExit: true);
+        Console.WriteLine("synced");
 
         //RunCommand($"{activateCommand}");
         //Console.WriteLine(activateCommand);
