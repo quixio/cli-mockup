@@ -33,6 +33,8 @@ class Program
             pythonCommand = "python3";
         }
 
+        Console.WriteLine($"Python command: {pythonCommand}");  // Debug print statement
+
         return pythonCommand;
     }
 
@@ -142,7 +144,7 @@ class Program
         }
 
         // Create a virtual environment in the new app folder
-        RunCommand($"python -m venv {appName}/venv");
+        RunCommand($"{pythonCommand} -m venv {appName}/venv");
         Console.WriteLine("Virtual environment created.");
 
         // Activate the virtual environment and install the dependencies
