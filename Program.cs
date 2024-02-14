@@ -141,7 +141,7 @@ class Program
     static void DownloadInitFiles(){
         
         // Download main.py, requirements.txt, and app.yaml files from the URLs
-        var files = new[] { "main.py", "requirements.txt", "app.yaml" };
+        var files = new[] { "quix.yaml" };
         var urls = new[]
         {
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/quix.yaml",
@@ -155,7 +155,7 @@ class Program
                 var url = urls[i];
                 //var path = Path.Combine(appName, file);
 
-                client.DownloadFile(url, ".");
+                client.DownloadFile(url, file);
                 Console.WriteLine($"File {file} downloaded.");
             }
         }
