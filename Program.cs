@@ -80,9 +80,26 @@ class Program
 
             }
         }
-        else if (command == "deploy")
+        else if (command == "local")
         {
-            var dockerInfo = RunCommand("run cli", output: true);
+            if (args.Length > 1){
+                var action = args[1];
+
+                if (action == "deploy")
+                {
+                    var dockerInfo = RunCommand("run cli", output: true);
+                }
+                else{
+                    Console.WriteLine("Usage:");
+                    Console.WriteLine("  local deploy - add your app to the quix.yaml");
+                }
+            }
+            else{
+                Console.WriteLine("Usage:");
+                Console.WriteLine("  local deploy - add your app to the quix.yaml");
+            }
+
+
             
         }
         else
@@ -97,6 +114,8 @@ class Program
         Console.WriteLine("  begin - Initialize the project");
         Console.WriteLine("  create <app_name> - Create a new app");
         Console.WriteLine("  topics ingest [topic-name] - Ingest data");
+        Console.WriteLine("  local deploy - add your app to the quix.yaml");
+
 
     }
 
@@ -117,7 +136,7 @@ class Program
         DownloadInitFiles();
 
         CreateVenv();
-
+        
         // Check if Docker Desktop is running
         var dockerInfo = RunCommand("docker info", output: false);
         if (dockerInfo.ExitCode == 0)
