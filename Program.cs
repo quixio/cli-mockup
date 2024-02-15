@@ -199,13 +199,14 @@ class Program
         Console.WriteLine($"Directory {appName} created.");
 
         // Download main.py, requirements.txt, and app.yaml files from the URLs
-        var files = new[] { "main.py", "requirements.txt", "app.yaml", "dockerfile" };
+        var files = new[] { "main.py", "requirements.txt", "app.yaml", "dockerfile", ".gitignore" };
         var urls = new[]
         {
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/main.py",
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/requirements.txt",
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/app.yaml",
             "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/dockerfile",
+            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/.gitignore"            
         };
 
         using (var client = new WebClient())
