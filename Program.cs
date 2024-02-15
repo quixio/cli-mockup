@@ -134,7 +134,7 @@ class Program
         Console.WriteLine("Directory .quix created.");
         DownloadInitFiles();
 
-        CreateVenv();
+        //CreateVenv();
         
         // Check if Docker Desktop is running
         var dockerInfo = RunCommand("docker info", output: false);
@@ -239,12 +239,17 @@ class Program
     }
     static void Activate()
     {
-        //var appName = "";//Path.GetDirectoryName(Directory.GetCurrentDirectory());
-        var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
-        var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
-        var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
-        RunCommand(chmodCommand);
-        RunCommand($"{scriptPath}", waitForExit: true);
+        Console.WriteLine("Creating virtual environment");
+        CreateVenv();
+        Console.WriteLine("Activating virtual environment");
+
+        // var scriptFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "activate.bat" : "activate.sh";
+        // var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFileName);
+        // var chmodCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "" : $"chmod +x {scriptPath}";
+        // RunCommand(chmodCommand);
+        // RunCommand($"{scriptPath}", waitForExit: true);
+
+        Console.WriteLine("Creating .env file");
 
         RunCommand("quix local sync env-variables", waitForExit: true);
         Console.WriteLine("synced");
@@ -255,6 +260,7 @@ class Program
         //var pythonCommand = GetPythonCommand();
         //var installCommand = $"{pythonCommand} -m pip install -r requirements.txt";
         //RunCommand($"{installCommand}");
+
 
         // Console.WriteLine("Virtual environment dependencies installed.");
         var helpText = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "..\\venv\\Scripts\\activate" : "source ../venv/bin/activate";

@@ -1,2 +1,2 @@
 @echo off
-cmd /k "cd /d %1\venv\Scripts & activate.bat"
+cmd /k "cd /d venv\Scripts & activate.bat"
