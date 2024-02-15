@@ -1,5 +1,4 @@
 using System;
-using Confluent.Kafka;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
