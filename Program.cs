@@ -120,9 +120,11 @@ class Program
 
     static void Init()
     {
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-
+            //var installCommand = "$quixCliInstall = (iwr https://github.com/quixio/quix-cli/raw/main/install.ps1 -useb).Content; iex \"$quixCliInstall 0.0.1-20240214.6\"";
+            //RunCommand(installCommand, fileName: "powershell.exe");
         }
         else
         {
@@ -192,6 +194,16 @@ class Program
         }
     }
 
+    static void CreateDotEnv(string appName){
+        // Create an empty .env file
+        var envFilePath = Path.Combine(appName, ".env");
+        using (var stream = File.Create(envFilePath))
+        {
+            // Close the FileStream immediately to create an empty file
+        }
+        Console.WriteLine(".env file created.");
+    }
+
     static void Create(string appName)
     {
         // Create a directory with the name of the app
@@ -221,6 +233,8 @@ class Program
                 Console.WriteLine($"File {file} downloaded.");
             }
         }
+
+        CreateDotEnv(appName);
     }
 
     static void CreateVenv(){
@@ -278,13 +292,13 @@ class Program
         Console.WriteLine($"Data delivered");
     }
 
-    static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true)
+    static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true, string fileName = null)
     {
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/bash",
+                FileName = fileName ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/bash"),
                 Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/c {command}" : $"-c \"{command}\"",
                 RedirectStandardOutput = redirectOutput,
                 UseShellExecute = false,
