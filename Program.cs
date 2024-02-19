@@ -1,6 +1,5 @@
-using System;
 using System.Diagnostics;
-using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Runtime.InteropServices; // Add this line
 
@@ -113,54 +112,116 @@ class Program
         Console.WriteLine("  local deploy - add your app to the quix.yaml");
     }
 
+    static void DownloadQuixCliForWindows(){
+        string version = "0.0.1-20240215.4";
+        string githubUrl = "https://github.com";
+        string owner = "quixio";
+        string repoName = "quix-cli";
+        string target = "win-x64";
+        string binDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "bin");
+
+        string resourceUri = string.IsNullOrEmpty(version)
+            ? $"{githubUrl}/{owner}/{repoName}/releases/latest/download/{target}.zip"
+            : $"{githubUrl}/{owner}/{repoName}/releases/download/{version}/{target}.zip";
+
+        string downloadedZip = Path.Combine(binDir, $"{target}.zip");
+
+        Directory.CreateDirectory(binDir);
+
+        Console.WriteLine($"[1/5] Detected 'x64' architecture");
+        Console.WriteLine($"[2/5] Downloading '{target}.zip' to '{binDir}'");
+
+        using (WebClient client = new WebClient())
+        {
+            client.DownloadFile(resourceUri, downloadedZip);
+        }
+
+        Console.WriteLine($"[3/5] Decompressing '{target}.zip' in '{binDir}'");
+
+        ZipFile.ExtractToDirectory(downloadedZip, binDir, true);
+
+        Console.WriteLine($"[4/5] Cleaning '{downloadedZip}'");
+
+        File.Delete(downloadedZip);
+
+        Console.WriteLine("");
+        Console.WriteLine("Quix CLI was installed successfully");
+        Console.WriteLine("Run 'quix --help' to get started");
+    }
+
+
     static void Init()
     {
-
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var installCommand = "$quixCliInstall = (iwr https://github.com/quixio/quix-cli/raw/main/install.ps1 -useb).Content; iex \"$quixCliInstall 0.0.1-20240215.3\"";
-            RunCommand(installCommand, fileName: "powershell.exe");
+            //var installCommand = "$quixCliInstall = (iwr https://github.com/quixio/quix-cli/raw/main/install.ps1 -useb).Content; $version=\"0.0.1-20240215.4\"; iex \"$quixCliInstall\"";
+            //RunCommand(installCommand, fileName: "powershell.exe");
+
+            DownloadQuixCliForWindows();
+
         }
         else
         {
-            RunCommand("curl -fsSL https://github.com/quixio/quix-cli/raw/main/install.sh | sudo bash -s -- -v=0.0.1-20240214.6");
+            RunCommand("curl -fsSL https://github.com/quixio/quix-cli/raw/main/install.sh | sudo bash -s -- -v=0.0.1-20240215.4");
         }
 
         // Create a directory named .quix
         Directory.CreateDirectory(".quix");
-        Console.WriteLine("Directory .quix created.");
-        DownloadInitFiles();
+        //Console.WriteLine("Directory .quix created.");
 
-        //CreateVenv();
+        // clone a repo to here
+        Console.Write("Please enter the GitHub repo URL (or blank to init a blank repo here): ");
+        string repoUrl = Console.ReadLine();
+        if(repoUrl == ""){
+            RunCommand($"init", fileName: "git");
+        }
+        else{
+            RunCommand($"clone {repoUrl}", fileName: "git");
+        }
+        // run cli init
+        RunCommand("quix local init");
+
+
+
+
+
+
+
+
+
+
+        // DownloadInitFiles();
+
+        // //CreateVenv();
         
-        // Check if Docker Desktop is running
-        var dockerInfo = RunCommand("docker info", output: false);
-        if (dockerInfo.ExitCode == 0)
-        {
-            Console.WriteLine("Docker Desktop is running.");
-        }
-        else
-        {
-            Console.WriteLine("Docker Desktop is not running. Please start Docker Desktop and try again.");
-            return;
-        }
+        // // Check if Docker Desktop is running
+        // var dockerInfo = RunCommand("docker info", output: false);
+        // if (dockerInfo.ExitCode == 0)
+        // {
+        //     Console.WriteLine("Docker Desktop is running.");
+        // }
+        // else
+        // {
+        //     Console.WriteLine("Docker Desktop is not running. Please start Docker Desktop and try again.");
+        //     return;
+        // }
 
-        // Ask the user if they want to start a Redpanda instance
-        Console.Write("Would you like to start a Redpanda instance in Docker? (yes/no) ");
-        var startRedpanda = Console.ReadLine();
-        if (startRedpanda.ToLower() == "yes" || startRedpanda.ToLower() == "y")
-        {
-            // Download the Docker Compose configuration
-            var dockerComposeUrl = "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/docker-compose.yml";
-            using (var client = new WebClient())
-            {
-                client.DownloadFile(dockerComposeUrl, "docker-compose.yml");
-            }
-            Console.WriteLine("Docker Compose configuration downloaded.");
+        // // Ask the user if they want to start a Redpanda instance
+        // Console.Write("Would you like to start a Redpanda instance in Docker? (yes/no) ");
+        // var startRedpanda = Console.ReadLine();
+        // if (startRedpanda.ToLower() == "yes" || startRedpanda.ToLower() == "y")
+        // {
+        //     // Download the Docker Compose configuration
+        //     var dockerComposeUrl = "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/docker-compose.yml";
+        //     using (var client = new WebClient())
+        //     {
+        //         client.DownloadFile(dockerComposeUrl, "docker-compose.yml");
+        //     }
+        //     Console.WriteLine("Docker Compose configuration downloaded.");
 
-            // Run `docker-compose up`
-            RunCommand("docker-compose up", redirectOutput: true, waitForExit: false);
-        }
+        //     // Run `docker-compose up`
+        //     RunCommand("docker-compose up", redirectOutput: true, waitForExit: false);
+        // }
 
         
     }
