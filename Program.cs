@@ -50,7 +50,7 @@ class Program
         // Parse command-line arguments
         var command = args[0];
 
-        if (command == "begin")
+        if (command == "begin" || command == "init")
         {
             Init();
         }
@@ -97,9 +97,6 @@ class Program
                 Console.WriteLine("Usage:");
                 Console.WriteLine("  local deploy - add your app to the quix.yaml");
             }
-
-
-            
         }
         else
         {
@@ -114,8 +111,6 @@ class Program
         Console.WriteLine("  create <app_name> - Create a new app");
         Console.WriteLine("  topics ingest [topic-name] - Ingest data");
         Console.WriteLine("  local deploy - add your app to the quix.yaml");
-
-
     }
 
     static void Init()
@@ -123,8 +118,8 @@ class Program
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            //var installCommand = "$quixCliInstall = (iwr https://github.com/quixio/quix-cli/raw/main/install.ps1 -useb).Content; iex \"$quixCliInstall 0.0.1-20240214.6\"";
-            //RunCommand(installCommand, fileName: "powershell.exe");
+            var installCommand = "$quixCliInstall = (iwr https://github.com/quixio/quix-cli/raw/main/install.ps1 -useb).Content; iex \"$quixCliInstall 0.0.1-20240215.3\"";
+            RunCommand(installCommand, fileName: "powershell.exe");
         }
         else
         {

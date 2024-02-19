@@ -13,10 +13,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>quix</RootNamespace>
+    <RootNamespace>quixcli</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
   </PropertyGroup>
 
 </Project>
