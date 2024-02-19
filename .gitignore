@@ -9,3 +9,8 @@ obj/
 .DS_Store
 
 .env
+
+dist/
+
+QuixCLI_test.egg-info/
+/venv2

@@ -1,0 +1,5 @@
+include ./bin/Debug/net7.0/linux-x64/*
+include ./bin/Debug/net7.0/osx-x64/*
+include ./bin/Debug/net7.0/osx-arm64/*
+include ./bin/Debug/net7.0/win10-x64/*
+include ./QuixCliWrapper/wrapper.py

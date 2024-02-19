@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Runtime.InteropServices; // Add this line
+using Confluent.Kafka;
+using System.Text.Json;
 
 
 class Program
@@ -55,8 +57,34 @@ class Program
         }
         else if (command == "create")
         {
-            var appName = args[1];
-            Create(appName);
+            static void PrintLocalHelp(){
+                Console.WriteLine("Usage:");
+                Console.WriteLine("  create [source|s] [name] - creates a new source app using a sample from the library");
+                Console.WriteLine("  create [transformation|t] [name] - creates a new transformation app using a sample from the library");
+                Console.WriteLine("  create [destination|sink|d] [name] - creates a new destination app using a sample from the library");
+            }
+
+            if (args.Length < 3){
+                PrintLocalHelp();
+                return;
+            }
+
+            var what = args[1];
+            if (what == "transformation" || what == "t"){
+                var appName = args[2];
+                WrapQuixCreateTransformation(appName);
+            }
+            else if(what == "destination" || what == "sink" || what == "d"){
+                var appName = args[2];
+                WrapQuixCreateDestination(appName);
+            }
+            else if(what == "source" || what == "s"){
+                var appName = args[2];
+                WrapQuixCreateSource(appName);
+            }
+            else{
+                PrintLocalHelp();
+            }
         }
         else if (command == "activate")
         {
@@ -75,7 +103,6 @@ class Program
             else{
                 Console.WriteLine("Usage:");
                 Console.WriteLine("  ingest [topic-name] - ingest data into a topic of your choosing");
-
             }
         }
         else if (command == "local")
@@ -97,9 +124,13 @@ class Program
                 Console.WriteLine("  local deploy - add your app to the quix.yaml");
             }
         }
+        else if( command == "broker"){
+            StartBroker();
+        }
         else
         {
             Console.WriteLine("Unknown command. Use 'init' to initialize the project or 'create' to create a new app.");
+            PrintHelp();
         }
     }
 
@@ -107,9 +138,43 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  begin - Initialize the project");
-        Console.WriteLine("  create <app_name> - Create a new app");
+        Console.WriteLine("  create [transformation|destination|source] <app_name> - Create a new app");
         Console.WriteLine("  topics ingest [topic-name] - Ingest data");
         Console.WriteLine("  local deploy - add your app to the quix.yaml");
+    }
+
+    static void StartBroker(){
+
+        // Check if Docker Desktop is running
+        var dockerInfo = RunCommand("docker info", output: false);
+        if (dockerInfo.ExitCode == 0)
+        {
+            Console.WriteLine("Docker Desktop is running.");
+        }
+        else
+        {
+            Console.WriteLine("Docker Desktop is not running. Please start Docker Desktop and try again.");
+            return;
+        }
+
+
+        Console.WriteLine("Which broker would you like to use?");
+        string[] options = {"Redpanda", "Aiven", "Confluent Kafka"};
+        var chosenOption = SelectOption(options);
+
+        if (chosenOption == "Redpanda")
+        {
+            // Download the Docker Compose configuration
+            var dockerComposeUrl = "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/docker-compose.yml";
+            using (var client = new WebClient())
+            {
+                client.DownloadFile(dockerComposeUrl, "docker-compose.yml");
+            }
+            Console.WriteLine("Docker Compose configuration downloaded.");
+
+            // Run `docker-compose up`
+            RunCommand("docker-compose up", redirectOutput: true, waitForExit: false);
+        }
     }
 
     static void DownloadQuixCliForWindows(){
@@ -173,21 +238,15 @@ class Program
         Console.Write("Please enter the GitHub repo URL (or blank to init a blank repo here): ");
         string repoUrl = Console.ReadLine();
         if(repoUrl == ""){
-            RunCommand($"init", fileName: "git");
+            Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");  // Debug print statement
+
+            RunCommand($"init", fileName: "git", verbatimCommand: true);
         }
         else{
-            RunCommand($"clone {repoUrl}", fileName: "git");
+            RunCommand($"clone {repoUrl}", fileName: "git", verbatimCommand: true);
         }
         // run cli init
         RunCommand("quix local init");
-
-
-
-
-
-
-
-
 
 
         // DownloadInitFiles();
@@ -258,6 +317,39 @@ class Program
             // Close the FileStream immediately to create an empty file
         }
         Console.WriteLine(".env file created.");
+    }
+
+    static void AppCreated(string appType, string appName){
+        Console.WriteLine($"{appType} created in {appName}");
+        Console.WriteLine($"Change to the {appName} directory, create a virtual environment and activate it.");
+        var activateCommandText = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "..\\venv\\Scripts\\activate" : "source ../venv/bin/activate";
+        var python = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
+        Console.WriteLine($"hint. Use:");
+
+        Console.ForegroundColor = ConsoleColor.Green; // Change the text color to green
+        Console.BackgroundColor = ConsoleColor.Black; // Change the background color to black
+        Console.WriteLine($"{python} -m venv venv\n.{activateCommandText}");
+        Console.ResetColor(); // Reset the color to the default
+
+
+    }
+
+    static void WrapQuixCreateTransformation(string appName){
+        var libraryItemId = "a00cd311-988d-4966-8eb5-eb50ad71dedd";
+        RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
+        AppCreated("Transformation", appName);
+    }
+
+    static void WrapQuixCreateSource(string appName){
+        var libraryItemId = "";
+        RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
+        AppCreated("Source", appName);
+    }
+    
+    static void WrapQuixCreateDestination(string appName){
+        var libraryItemId = "";
+        RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
+        AppCreated("Destination/Sink", appName);
     }
 
     static void Create(string appName)
@@ -345,22 +437,67 @@ class Program
     }
 
     static void DemoData(string topic){
+        var server = "localhost:19092";
+
+        var dataList = new List<Data>
+        {
+            new Data { Timestamp = 1687516100000000000, Number = 1, Speed = 120, Sector = 1},
+            new Data { Timestamp = 1687516095000000000, Number = 2, Speed = 244, Sector = 2},
+            new Data { Timestamp = 1687516095000000000, Number = 3, Speed = 68, Sector = 3},
+            new Data { Timestamp = 1687516095000000000, Number = 4, Speed = 77, Sector = 4},
+            new Data { Timestamp = 1687516095000000000, Number = 5, Speed = 285, Sector = 1}
+        };
+
+        foreach(var data in dataList)
+            WriteToKafkaTopic(server, topic, data).GetAwaiter().GetResult();
+
         Console.WriteLine($"Data delivered");
     }
 
-    static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true, string fileName = null)
+    public class Data
+    {
+        public long Timestamp { get; set; }
+        public int Number { get; set; }
+        public float Speed { get; set; }
+        public int Sector { get; set; }
+
+    }
+    public static async Task WriteToKafkaTopic(string bootstrapServers, string topic, Data data)
+    {
+        var config = new ProducerConfig { BootstrapServers = bootstrapServers };
+
+        using (var producer = new ProducerBuilder<Null, string>(config).Build())
+        {
+            var message = JsonSerializer.Serialize(data);
+
+            try
+            {
+                var dr = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
+                Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
+            }
+            catch (ProduceException<Null, string> e)
+            {
+                Console.WriteLine($"Delivery failed: {e.Error.Reason}");
+            }
+        }
+    }
+
+    static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true, string fileName = null, bool verbatimCommand=false)
     {
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = fileName ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/bash"),
-                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/c {command}" : $"-c \"{command}\"",
+                Arguments = verbatimCommand ? command : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/c {command}" : $"-c \"{command}\"",
                 RedirectStandardOutput = redirectOutput,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             }
         };
+
+        // Console.WriteLine($"Running command: {process.StartInfo.FileName} {process.StartInfo.Arguments}");  // Debug print statement
+
 
         process.Start();
 
@@ -382,8 +519,56 @@ class Program
         if (waitForExit)
         {
             process.WaitForExit();
+            // Console.WriteLine($"Command exited with code: {process.ExitCode}");  // Debug print statement
+
         }
 
         return process;
+    }
+
+   static string SelectOption(string[] options)
+    {
+        int currentSelection = 0;
+        ConsoleKeyInfo key;
+
+        // Write the options to the console
+        for (int i = 0; i < options.Length; i++)
+        {
+            Console.WriteLine(options[i]);
+        }
+
+        do
+        {
+            // Move the cursor to the start of the options
+            Console.SetCursorPosition(0, Console.CursorTop - options.Length);
+
+            // Write the options to the console, highlighting the current selection
+            for (int i = 0; i < options.Length; i++)
+            {
+                if (i == currentSelection)
+                {
+                    Console.BackgroundColor = ConsoleColor.Gray;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                }
+
+                Console.WriteLine(options[i].PadRight(Console.WindowWidth - 1));  // PadRight to overwrite the entire line
+
+                Console.ResetColor();
+            }
+
+            key = Console.ReadKey(true);
+
+            if (key.Key == ConsoleKey.UpArrow)
+            {
+                currentSelection = (currentSelection == 0) ? options.Length - 1 : currentSelection - 1;
+            }
+            else if (key.Key == ConsoleKey.DownArrow)
+            {
+                currentSelection = (currentSelection == options.Length - 1) ? 0 : currentSelection + 1;
+            }
+        }
+        while (key.Key != ConsoleKey.Enter);
+
+        return options[currentSelection];
     }
 }
