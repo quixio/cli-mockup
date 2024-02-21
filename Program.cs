@@ -4,12 +4,15 @@ using System.Net;
 using System.Runtime.InteropServices; // Add this line
 using Confluent.Kafka;
 using System.Text.Json;
-
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 class Program
 {
     static string cliVersion = "0.0.1-20240220.1";
     static string kafka_server = "localhost:19092";
+
+    static ILogger logger;
 
     static string GetPythonCommand()
     {
@@ -36,13 +39,32 @@ class Program
             pythonCommand = "python3";
         }
 
-        Console.WriteLine($"Python command: {pythonCommand}");  // Debug print statement
+        logger.LogInformation($"Python command: {pythonCommand}");  // Debug print statement
 
         return pythonCommand;
     }
 
     static void Main(string[] args)
     {
+        LogLevel programLogLevel = LogLevel.Information;
+
+        var logLevelArg = args.FirstOrDefault(arg => arg.StartsWith("--verbose"));
+        if (logLevelArg != null)
+        {
+            programLogLevel = LogLevel.Debug;
+        }
+        
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("Program", programLogLevel)
+                .AddConsole();
+        });
+
+        logger = loggerFactory.CreateLogger<Program>();
+
         // Check if no arguments were passed
         if (args.Length == 0)
         {
@@ -92,6 +114,21 @@ class Program
             }
             else{
                 PrintLocalHelp();
+            }
+        }
+        else if (command == "create-app")
+        {
+            if (args.Length < 3){
+                Console.WriteLine("  create-app [transformation|t] [name] - creates a template app");
+                return;
+            }
+            var what = args[1];
+            if (what == "transformation" || what == "t"){
+                var appName = args[2];
+                DownloadFilesToNewFolder(appName);
+            }
+            else{
+                Console.WriteLine("  create-app [transformation|t] [name] - creates a template app");
             }
         }
         else if (command == "activate")
@@ -145,7 +182,7 @@ class Program
         }
         else if( command == "ver"){
             
-            Console.WriteLine("0.1.1");
+            Console.WriteLine("0.1.4");
         }
         else
         {
@@ -160,9 +197,10 @@ class Program
         Console.WriteLine("  begin - Initialize the project");
         Console.WriteLine("  broker - start a local broker in docker desktop");
         Console.WriteLine("  topics ingest [topic-name] - ingest data into a topic of your choosing");
-        Console.WriteLine("  create [transformation|destination|source] <app_name> - Create a new app");
+        Console.WriteLine("  create [transformation|destination|source] <app_name> - Create a new app (wraps official CLI)");
+        Console.WriteLine("  create-app [transformation] <app_name> - Create a new app (downloads from github)");
         Console.WriteLine("  local deploy - add your app to the quix.yaml");
-
+        Console.WriteLine("  ver - prints the CLI version");
     }
 
     static void StartBroker(){
@@ -372,26 +410,23 @@ class Program
             Chmod(replaceFilePath, "755");
         }
 
-        Console.WriteLine("Modifying main.py...");
+        logger.LogDebug("Modifying main.py...");
         ReplaceFileText(replaceFilePath, 
                         "import logging", 
                         "import logging\nimport uuid\n\n# Generate a UUID\nunique_id = uuid.uuid4()\n\n# Convert the UUID to a string and remove the dashes\nformatted_id = str(unique_id).replace('-', '')\n");
-        Console.WriteLine("2");
         
         ReplaceFileText(replaceFilePath, 
                         "app = Application.Quix(\"transformation-v1\", auto_offset_reset=\"latest\")", 
                         "app = Application(broker_address=os.environ[\"KAFKA_BROKER_ADDRESS\"],\n            consumer_group=\"transformation-\" + formatted_id,\n            auto_offset_reset=\"earliest\",\n            consumer_extra_config={\"allow.auto.create.topics\": \"true\"},\n            producer_extra_config={\"allow.auto.create.topics\": \"true\"})");
-        Console.WriteLine("3");
 
         ReplaceFileText(replaceFilePath, 
                         "sdf = sdf.update(lambda row: logger.debug(row))", 
                         "sdf = sdf.update(lambda row: logger.info(row))");
-        Console.WriteLine("4");
 
         ReplaceFileText(replaceFilePath, 
                         "sdf = sdf.to_topic(output_topic)", 
                         "# sdf = sdf.to_topic(output_topic)");
-        Console.WriteLine("5");
+        logger.LogDebug("Done modifying main.py");
         
         // notify all is good
         AppCreated("Transformation", appName);
@@ -426,37 +461,38 @@ class Program
         AppCreated("Destination/Sink", appName);
     }
 
-    static void Create(string appName)
+    static void DownloadFilesToNewFolder(string appName, string urlRoot = "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/starter-transformation")
     {
         // Create a directory with the name of the app
+        if(Directory.Exists(appName)){
+            Console.WriteLine($"{appName} already exists. Please delete and try again or use a different app name");
+            return;
+        }
+
+        if (!urlRoot.EndsWith("/"))
+            urlRoot += "/";
+
         Directory.CreateDirectory(appName);
         Console.WriteLine($"Directory {appName} created.");
-
         // Download main.py, requirements.txt, and app.yaml files from the URLs
-        var files = new[] { "main.py", "requirements.txt", "app.yaml", "dockerfile", ".gitignore" };
-        var urls = new[]
-        {
-            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/main.py",
-            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/requirements.txt",
-            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/app.yaml",
-            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/name%20counter/dockerfile",
-            "https://raw.githubusercontent.com/SteveRosam/cli-code/tutorial/.gitignore"            
-        };
+        var files = new[] { "main.py", "requirements.txt", "app.yaml", "dockerfile", "README.md", ".env" };
 
         using (var client = new WebClient())
         {
             for (int i = 0; i < files.Length; i++)
             {
                 var file = files[i];
-                var url = urls[i];
+                string url = $"{urlRoot}{files[i]}";
                 var path = Path.Combine(appName, file);
 
+                logger.LogDebug(url);
+
                 client.DownloadFile(url, path);
-                Console.WriteLine($"File {file} downloaded.");
+                logger.LogDebug($"File {file} downloaded.");
             }
         }
 
-        CreateDotEnv(appName);
+        Console.WriteLine($"App created in '{appName}'");
     }
 
     static void CreateVenv(){
@@ -575,7 +611,7 @@ class Program
             }
         };
 
-        Console.WriteLine($"Running command: {process.StartInfo.FileName} {process.StartInfo.Arguments}");  // Debug print statement
+        logger.LogDebug($"Running command: {process.StartInfo.FileName} {process.StartInfo.Arguments}");  // Debug print statement
 
 
         process.Start();
@@ -598,7 +634,7 @@ class Program
         if (waitForExit)
         {
             process.WaitForExit();
-            Console.WriteLine($"Command exited with code: {process.ExitCode}");  // Debug print statement
+            logger.LogDebug($"Command exited with code: {process.ExitCode}");  // Debug print statement
 
         }
 
