@@ -8,6 +8,8 @@ using System.Text.Json;
 
 class Program
 {
+    static string cliVersion = "0.0.1-20240220.1";
+    static string kafka_server = "localhost:19092";
 
     static string GetPythonCommand()
     {
@@ -62,6 +64,7 @@ class Program
                 Console.WriteLine("  create [source|s] [name] - creates a new source app using a sample from the library");
                 Console.WriteLine("  create [transformation|t] [name] - creates a new transformation app using a sample from the library");
                 Console.WriteLine("  create [destination|sink|d] [name] - creates a new destination app using a sample from the library");
+                Console.WriteLine("  create [project|p] [name] - creates a Quix project which will become a deployment in the Quix platform");
             }
 
             if (args.Length < 3){
@@ -81,6 +84,11 @@ class Program
             else if(what == "source" || what == "s"){
                 var appName = args[2];
                 WrapQuixCreateSource(appName);
+            }            
+            else if(what == "project" || what == "p"){
+                var appName = args[2];
+                //WrapQuixCreateSource(appName);
+                Console.WriteLine($"{appName} added to quix.yaml");
             }
             else{
                 PrintLocalHelp();
@@ -112,7 +120,14 @@ class Program
 
                 if (action == "deploy")
                 {
-                    var dockerInfo = RunCommand("run cli", output: true);
+                    Console.WriteLine("Deploying app to local");
+                    
+                    if (args.Length > 2)
+                    {
+                        // Console.WriteLine("TODO");
+                        // var deploymentName = args[2];
+                        // var dockerInfo = RunCommand("", output: true);
+                    }
                 }
                 else{
                     Console.WriteLine("Usage:");
@@ -125,7 +140,12 @@ class Program
             }
         }
         else if( command == "broker"){
+            
             StartBroker();
+        }
+        else if( command == "ver"){
+            
+            Console.WriteLine("0.1.1");
         }
         else
         {
@@ -138,9 +158,11 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  begin - Initialize the project");
+        Console.WriteLine("  broker - start a local broker in docker desktop");
+        Console.WriteLine("  topics ingest [topic-name] - ingest data into a topic of your choosing");
         Console.WriteLine("  create [transformation|destination|source] <app_name> - Create a new app");
-        Console.WriteLine("  topics ingest [topic-name] - Ingest data");
         Console.WriteLine("  local deploy - add your app to the quix.yaml");
+
     }
 
     static void StartBroker(){
@@ -178,7 +200,7 @@ class Program
     }
 
     static void DownloadQuixCliForWindows(){
-        string version = "0.0.1-20240215.4";
+        string version = cliVersion;
         string githubUrl = "https://github.com";
         string owner = "quixio";
         string repoName = "quix-cli";
@@ -227,7 +249,7 @@ class Program
         }
         else
         {
-            RunCommand("curl -fsSL https://github.com/quixio/quix-cli/raw/main/install.sh | sudo bash -s -- -v=0.0.1-20240215.4");
+            RunCommand($"curl -fsSL https://github.com/quixio/quix-cli/raw/main/install.sh | sudo bash -s -- -v={cliVersion}");
         }
 
         // Create a directory named .quix
@@ -330,24 +352,76 @@ class Program
         Console.BackgroundColor = ConsoleColor.Black; // Change the background color to black
         Console.WriteLine($"{python} -m venv venv\n.{activateCommandText}");
         Console.ResetColor(); // Reset the color to the default
-
-
     }
 
     static void WrapQuixCreateTransformation(string appName){
         var libraryItemId = "a00cd311-988d-4966-8eb5-eb50ad71dedd";
         RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
+
+        // create the .env file using the real cli
+        RunCommand(fileName: "quix", command: $"local sync env-variables", verbatimCommand: true, workingDirectory: appName);
+
+        // add kafka broker address to .env file
+        var filePath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{appName}\\.env" : $"{appName}/.env";
+        string contentToAppend = $"KAFKA_BROKER_ADDRESS={kafka_server}";
+        File.AppendAllText(filePath, contentToAppend);
+
+        var replaceFilePath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{appName}\\main.py" : $"{appName}/main.py";
+        
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)){
+            Chmod(replaceFilePath, "755");
+        }
+
+        Console.WriteLine("Modifying main.py...");
+        ReplaceFileText(replaceFilePath, 
+                        "import logging", 
+                        "import logging\nimport uuid\n\n# Generate a UUID\nunique_id = uuid.uuid4()\n\n# Convert the UUID to a string and remove the dashes\nformatted_id = str(unique_id).replace('-', '')\n");
+        Console.WriteLine("2");
+        
+        ReplaceFileText(replaceFilePath, 
+                        "app = Application.Quix(\"transformation-v1\", auto_offset_reset=\"latest\")", 
+                        "app = Application(broker_address=os.environ[\"KAFKA_BROKER_ADDRESS\"],\n            consumer_group=\"transformation-\" + formatted_id,\n            auto_offset_reset=\"earliest\",\n            consumer_extra_config={\"allow.auto.create.topics\": \"true\"},\n            producer_extra_config={\"allow.auto.create.topics\": \"true\"})");
+        Console.WriteLine("3");
+
+        ReplaceFileText(replaceFilePath, 
+                        "sdf = sdf.update(lambda row: logger.debug(row))", 
+                        "sdf = sdf.update(lambda row: logger.info(row))");
+        Console.WriteLine("4");
+
+        ReplaceFileText(replaceFilePath, 
+                        "sdf = sdf.to_topic(output_topic)", 
+                        "# sdf = sdf.to_topic(output_topic)");
+        Console.WriteLine("5");
+        
+        // notify all is good
         AppCreated("Transformation", appName);
     }
 
+
+    static void Chmod(string filePath, string permissions)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "/bin/bash",
+            Arguments = $"-c \"chmod {permissions} {filePath}\"",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        var process = new Process { StartInfo = startInfo };
+        process.Start();
+        process.WaitForExit();
+    }
+        
     static void WrapQuixCreateSource(string appName){
-        var libraryItemId = "";
+        var libraryItemId = "8dd9ecb9-d1aa-498c-84fb-054a042acc13";
         RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
         AppCreated("Source", appName);
     }
     
     static void WrapQuixCreateDestination(string appName){
-        var libraryItemId = "";
+        var libraryItemId = "3ddc14c6-e07f-4092-b203-f969f9eb0b8d";
         RunCommand(fileName: "quix", command: $"local applications add {appName} -li {libraryItemId}", verbatimCommand: true);
         AppCreated("Destination/Sink", appName);
     }
@@ -399,6 +473,7 @@ class Program
             Console.WriteLine("Virtual environment created.");
         }
     }
+
     static void Activate()
     {
         Console.WriteLine("Creating virtual environment");
@@ -437,8 +512,6 @@ class Program
     }
 
     static void DemoData(string topic){
-        var server = "localhost:19092";
-
         var dataList = new List<Data>
         {
             new Data { Timestamp = 1687516100000000000, Number = 1, Speed = 120, Sector = 1},
@@ -449,7 +522,7 @@ class Program
         };
 
         foreach(var data in dataList)
-            WriteToKafkaTopic(server, topic, data).GetAwaiter().GetResult();
+            WriteToKafkaTopic(kafka_server, topic, data).GetAwaiter().GetResult();
 
         Console.WriteLine($"Data delivered");
     }
@@ -482,7 +555,12 @@ class Program
         }
     }
 
-    static Process RunCommand(string command, bool output = true, bool redirectOutput = true, bool waitForExit = true, string fileName = null, bool verbatimCommand=false)
+    static Process RunCommand(string command, bool output = true, 
+                                bool redirectOutput = true, 
+                                bool waitForExit = true, 
+                                string fileName = null, 
+                                bool verbatimCommand=false, 
+                                string workingDirectory = null)
     {
         var process = new Process
         {
@@ -493,10 +571,11 @@ class Program
                 RedirectStandardOutput = redirectOutput,
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                WorkingDirectory = workingDirectory ?? Directory.GetCurrentDirectory() // Set the working directory
             }
         };
 
-        // Console.WriteLine($"Running command: {process.StartInfo.FileName} {process.StartInfo.Arguments}");  // Debug print statement
+        Console.WriteLine($"Running command: {process.StartInfo.FileName} {process.StartInfo.Arguments}");  // Debug print statement
 
 
         process.Start();
@@ -509,7 +588,7 @@ class Program
                 var line = process.StandardOutput.ReadLine();
                 Console.WriteLine(line);
                 lineCount++;
-                if (lineCount >= 10)
+                if (lineCount >= 5)
                 {
                     break;
                 }
@@ -519,7 +598,7 @@ class Program
         if (waitForExit)
         {
             process.WaitForExit();
-            // Console.WriteLine($"Command exited with code: {process.ExitCode}");  // Debug print statement
+            Console.WriteLine($"Command exited with code: {process.ExitCode}");  // Debug print statement
 
         }
 
@@ -571,4 +650,17 @@ class Program
 
         return options[currentSelection];
     }
+
+    static void ReplaceFileText(string filePath, string oldText, string newText)
+    {
+        // Read the entire file to a string
+        string content = File.ReadAllText(filePath);
+
+        // Replace the old text with the new text
+        content = content.Replace(oldText, newText);
+
+        // Write the modified content back to the file
+        File.WriteAllText(filePath, content);
+    }
+
 }

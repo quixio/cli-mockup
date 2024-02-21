@@ -14,3 +14,8 @@ dist/
 
 QuixCLI_test.egg-info/
 /venv2
+/build
+.vscode
+/foo*
+QuixCliWrapper/bin*
+/build/*
